@@ -1,0 +1,355 @@
+/* ------------------------------------------------------------ tasks */
+
+.runner-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.92rem;
+}
+
+.back {
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.task-prompt {
+  font-size: 1.25rem;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-wrap: pretty;
+}
+
+.options {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.options-row {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.options-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.option:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.option:disabled {
+  cursor: default;
+}
+
+.option-mark {
+  flex: none;
+  width: 1.3rem;
+  height: 1.3rem;
+  margin-top: 0.12rem;
+  border-radius: 50%;
+  border: 2px solid var(--muted);
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.option-mark.is-multi {
+  border-radius: 5px;
+}
+
+:is(.option, .choice).is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+:is(.option, .choice).is-selected .option-mark {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: inset 0 0 0 3px var(--accent-soft);
+}
+
+:is(.option, .choice).is-correct {
+  border-color: var(--ok);
+  background: var(--ok-soft);
+}
+
+:is(.option, .choice).is-correct .option-mark {
+  border-color: var(--ok);
+  background: var(--ok);
+  color: var(--surface);
+  box-shadow: none;
+}
+
+:is(.option, .choice).is-wrong {
+  border-color: var(--bad);
+  background: var(--bad-soft);
+}
+
+:is(.option, .choice).is-wrong .option-mark {
+  border-color: var(--bad);
+  background: var(--bad);
+  color: var(--surface);
+  box-shadow: none;
+}
+
+.palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.chip,
+.drag-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.8rem 0.45rem 0.55rem;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.chip {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.chip:hover:not(:disabled),
+.chip.is-armed {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.drag-ghost {
+  position: fixed;
+  z-index: 100;
+  transform: translate(-50%, -50%);
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+}
+
+.feedback {
+  margin-top: 1.2rem;
+  padding: 1rem 1.1rem;
+  border-radius: 12px;
+  border: 1.5px solid;
+}
+
+.feedback > * + * {
+  margin-top: 0.5rem;
+}
+
+.feedback.is-ok {
+  border-color: var(--ok);
+  background: var(--ok-soft);
+}
+
+.feedback.is-bad {
+  border-color: var(--bad);
+  background: var(--bad-soft);
+}
+
+.feedback-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.feedback.is-ok .feedback-title {
+  color: var(--ok);
+}
+
+.feedback.is-bad .feedback-title {
+  color: var(--bad);
+}
+
+.rule-refs {
+  list-style: none;
+  margin: 0.8rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  font-size: 0.92rem;
+}
+
+.rule-refs li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.feedback .badge {
+  background: var(--surface);
+}
+
+/* pick tasks: one card per diagram */
+
+.choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--choice-min, 260px)), 1fr));
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+
+.choice {
+  min-width: 0;
+  padding: 0.6rem;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.choice:has(.choice-head:enabled) {
+  cursor: pointer;
+}
+
+.choice:has(.choice-head:enabled):hover {
+  border-color: var(--accent);
+}
+
+.choice-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.15rem 0.3rem;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: inherit;
+}
+
+.choice-head .option-mark {
+  margin-top: 0;
+}
+
+.choice .epk {
+  margin-top: 0.5rem;
+}
+
+.choice-note {
+  margin-top: 0.6rem;
+  padding: 0 0.3rem;
+  font-size: 0.9rem;
+}
+
+/* model and repair tasks: the editor */
+
+.editor .palette {
+  padding: 0.5rem 0;
+  background: var(--surface);
+}
+
+.editor-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  margin-top: 0.3rem;
+}
+
+.editor-hint {
+  flex: 1 1 18rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.editor-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.editor .epk {
+  margin-top: 0.6rem;
+}
+
+/* On a phone the grid scrolls sideways instead of shrinking until nothing can be read or hit. */
+.editor .epk-svg {
+  min-width: 28rem;
+}
+
+.editor .epk-node {
+  cursor: grab;
+  touch-action: none;
+}
+
+.compare {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  align-items: start;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.compare-item {
+  min-width: 0;
+}
+
+.compare-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.compare .epk {
+  margin-top: 0.4rem;
+}
+
+.issues {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.9rem 0 0;
+  padding-left: 1.2rem;
+  font-size: 0.95rem;
+}
+
+.issues .badge {
+  margin: 0 0.15rem;
+}
+
+/* Keeps the elements in reach while a tall grid is scrolled. The top bar has one line at this width. */
+@media (min-width: 700px) {
+  .editor .palette {
+    position: sticky;
+    top: 3.45rem;
+    z-index: 5;
+  }
+}

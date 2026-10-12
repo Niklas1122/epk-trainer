@@ -1,0 +1,211 @@
+/* ------------------------------------------------------------ home */
+
+.hero {
+  padding: 0.5rem 0 0.5rem;
+}
+
+.group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.group-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.group-card header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.group-card .actions {
+  margin-top: auto;
+  padding-top: 1rem;
+}
+
+.test-card .badge {
+  background: var(--text);
+  color: var(--surface);
+}
+
+.storage-note {
+  margin-top: 1.5rem;
+}
+
+/* ------------------------------------------------------------ catalog */
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tabs a {
+  min-width: 2.6rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  text-align: center;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.tabs a:hover {
+  border-color: var(--accent);
+}
+
+.tabs a.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.rule-group > * + * {
+  margin-top: 1rem;
+}
+
+.rule-head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.rule-text {
+  font-size: 1.05rem;
+}
+
+.examples {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.example {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.75rem;
+  background: var(--surface-2);
+  min-width: 0;
+}
+
+.example > p {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.example-tag {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.example.is-good .example-tag {
+  color: var(--ok);
+}
+
+.example.is-bad .example-tag {
+  color: var(--bad);
+}
+
+.example .epk {
+  border: none;
+  background: none;
+  padding: 0.5rem 0 0;
+}
+
+/* ------------------------------------------------------------ results */
+
+.score-card {
+  text-align: center;
+}
+
+.score {
+  font-size: 2.6rem;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.breakdown {
+  list-style: none;
+  margin: 1.2rem auto 0;
+  padding: 0;
+  max-width: 26rem;
+  display: grid;
+  gap: 0.4rem;
+  text-align: left;
+}
+
+.breakdown li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.breakdown-score {
+  margin-left: auto;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.review {
+  display: grid;
+  /* minmax keeps a long prompt from widening the column beyond the page */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.6rem;
+}
+
+.review-item {
+  padding: 0.8rem 1rem;
+}
+
+.review-item summary {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.review-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.review-prompt {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-item[open] .review-prompt {
+  white-space: normal;
+  font-weight: 600;
+}
+
+.result-dot {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--surface);
+}
+
+.result-dot.is-ok {
+  background: var(--ok);
+}
+
+.result-dot.is-bad {
+  background: var(--bad);
+}

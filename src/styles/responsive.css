@@ -1,0 +1,19 @@
+@media (max-width: 560px) {
+  main {
+    padding-top: 1.25rem;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  .task-prompt {
+    font-size: 1.1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

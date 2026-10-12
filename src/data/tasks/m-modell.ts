@@ -1,0 +1,487 @@
+import { and, assoc, doc, epk, ev, flow, fn, org, slot, via, xor } from '../../epk/build'
+import type { Task } from '../../types'
+import { RULE, SPOT, TF } from './prompts'
+
+export const M_TASKS: Task[] = [
+  {
+    id: 'm-mc-1',
+    type: 'mc',
+    group: 'M',
+    rules: ['M2', 'M3'],
+    prompt: 'Welche Aussage zu Anfang und Ende einer EPK ist richtig?',
+    options: [
+      'Jede EPK besitzt mindestens ein Startereignis und mindestens ein Endereignis.',
+      'Jede EPK besitzt genau ein Startereignis und genau ein Endereignis.',
+      'Eine EPK darf mit einer Funktion beginnen, wenn sie mit einem Ereignis endet.',
+      'Eine Prozessschnittstelle am Anfang ersetzt das Startereignis.',
+    ],
+    correct: [0],
+    explanation:
+      'Es können mehrere Start- und Endereignisse vorkommen. Eine Prozessschnittstelle darf zusätzlich davor oder dahinter stehen, ersetzt sie aber nicht.',
+  },
+  {
+    id: 'm-mc-2',
+    type: 'mc',
+    group: 'M',
+    rules: ['M6'],
+    prompt: 'Womit dürfen Erweiterungsobjekte wie Organisationseinheiten, Dokumente oder Anwendungssysteme verbunden werden?',
+    options: ['Nur mit Funktionen', 'Nur mit Ereignissen', 'Mit Funktionen und Ereignissen', 'Nur mit Konnektoren'],
+    correct: [0],
+    explanation: 'Nur Funktionen sind aktiv: Sie werden von jemandem ausgeführt und verarbeiten Daten.',
+  },
+  {
+    id: 'm-mc-3',
+    type: 'mc',
+    group: 'M',
+    rules: ['M9', 'M10', 'M11'],
+    multi: true,
+    prompt: 'Welche Aussagen über Rücksprünge treffen zu? Mehrere Antworten sind richtig.',
+    options: [
+      'Ein Rücksprung geht immer von einem Ereignis aus.',
+      'Ein Rücksprung mündet immer in einem Konnektor.',
+      'Ein Rücksprung mündet unmittelbar vor einem Ereignis.',
+      'Für die Einmündung wird grundsätzlich ein UND-Konnektor eingefügt.',
+    ],
+    correct: [0, 1],
+    explanation:
+      'Der Rücksprung mündet unmittelbar vor einer Funktion, und der eingefügte Konnektor ist grundsätzlich ein XOR.',
+  },
+  {
+    id: 'm-tf-1',
+    type: 'tf',
+    group: 'M',
+    rules: ['M2'],
+    prompt: TF,
+    epk: epk(
+      [
+        fn('a', 'Angebot erstellen', 0, 0),
+        ev('b', 'Angebot ist erstellt', 0, 1),
+        fn('c', 'Angebot versenden', 0, 2),
+        ev('d', 'Angebot ist versandt', 0, 3),
+      ],
+      flow('a>b>c>d'),
+    ),
+    violates: ['M2', 'F1'],
+    explanation:
+      'Die EPK beginnt mit einer Funktion. Es fehlt das Startereignis, das den Prozess auslöst. Die erste Funktion hat dadurch auch keine eingehende Kante (F1).',
+  },
+  {
+    id: 'm-tf-2',
+    type: 'tf',
+    group: 'M',
+    rules: ['M5'],
+    prompt: TF,
+    epk: epk(
+      [ev('s', 'Ticket ist eröffnet', 0, 0), fn('f', 'Ticket bearbeiten', 0, 1), ev('e', 'Ticket ist gelöst', 0, 2)],
+      [
+        ...flow('s>f'),
+        { id: 'f>e#1', from: 'f', to: 'e', dx: -9 },
+        { id: 'f>e#2', from: 'f', to: 'e', dx: 9 },
+      ],
+    ),
+    violates: ['M5'],
+    explanation: 'Zwischen der Funktion und dem Endereignis verlaufen zwei Kanten. Mehrfachkanten sind nicht erlaubt.',
+  },
+  {
+    id: 'm-tf-3',
+    type: 'tf',
+    group: 'M',
+    rules: ['M9', 'M10', 'M11'],
+    prompt: 'Diese EPK enthält einen Rücksprung. Ist sie regelkonform?',
+    epk: epk(
+      [
+        ev('s', 'Rückruf ist fällig', 1, 0),
+        xor('j', 1, 1),
+        fn('f', 'Kunde anrufen', 1, 2),
+        xor('x', 1, 3),
+        ev('ok', 'Kunde ist erreicht', 0.5, 4),
+        ev('nok', 'Kunde ist nicht erreicht', 1.5, 4),
+      ],
+      [...flow('s>j>f>x', 'x>ok', 'x>nok'), via('nok', 'j', [[2.45, 4], [2.45, 1]])],
+    ),
+    violates: [],
+    explanation:
+      'Der Rücksprung geht von einem Ereignis aus, mündet in einem XOR-Konnektor und das unmittelbar vor einer Funktion.',
+  },
+  {
+    id: 'm-rule-1',
+    type: 'rule',
+    group: 'M',
+    rules: ['M3'],
+    prompt: RULE,
+    epk: epk(
+      [
+        ev('a', 'Störung ist gemeldet', 0, 0),
+        fn('b', 'Störung analysieren', 0, 1),
+        ev('c', 'Ursache ist gefunden', 0, 2),
+        fn('d', 'Störung beheben', 0, 3),
+      ],
+      flow('a>b>c>d'),
+    ),
+    options: ['M1', 'M2', 'M3', 'E4'],
+    correct: 'M3',
+    violates: ['M3', 'F1'],
+    explanation:
+      'Die EPK endet mit einer Funktion. Es fehlt ein Endereignis wie „Störung ist behoben“, das das Ergebnis festhält.',
+  },
+  {
+    id: 'm-rule-2',
+    type: 'rule',
+    group: 'M',
+    rules: ['M8'],
+    prompt: RULE,
+    epk: epk(
+      [
+        ev('s', 'Bestellung ist eingegangen', 0.5, 0),
+        fn('f0', 'Versandart wählen', 0.5, 1),
+        xor('x', 0.5, 2),
+        ev('a', 'Standardversand ist gewählt', 0, 3),
+        ev('b', 'Expressversand ist gewählt', 1, 3),
+        fn('fa', 'Paket per Post versenden', 0, 4),
+        fn('fb', 'Paket per Kurier versenden', 1, 4),
+        and('j', 0.5, 5),
+        ev('e', 'Paket ist versandt', 0.5, 6),
+      ],
+      flow('s>f0>x', 'x>a>fa>j', 'x>b>fb>j', 'j>e'),
+    ),
+    options: ['K1', 'K3', 'M7', 'M8'],
+    correct: 'M8',
+    violates: ['M8'],
+    explanation:
+      'Aufgespalten wird mit XOR, zusammengeführt mit UND. Da nur ein Zweig durchlaufen wird, würde der UND-Konnektor vergeblich auf den zweiten warten.',
+  },
+  {
+    id: 'm-rule-3',
+    type: 'rule',
+    group: 'M',
+    rules: ['M9'],
+    prompt: 'Der Rücksprung in dieser EPK ist nicht regelkonform. Gegen welche Regel verstößt er?',
+    epk: epk(
+      [
+        ev('s', 'Rückruf ist fällig', 1, 0),
+        xor('j', 1, 1),
+        fn('f', 'Kunde anrufen', 1, 2),
+        xor('x', 1, 3),
+        ev('ok', 'Kunde ist erreicht', 0.5, 4),
+        ev('nok', 'Kunde ist nicht erreicht', 1.5, 4),
+        fn('n', 'Rückruf notieren', 1.5, 5),
+      ],
+      [...flow('s>j>f>x', 'x>ok', 'x>nok>n'), via('n', 'j', [[2.45, 5], [2.45, 1]])],
+    ),
+    options: ['M5', 'M9', 'M10', 'M11'],
+    correct: 'M9',
+    violates: ['M9', 'F2', 'K2'],
+    explanation:
+      'Der Rücksprung geht von der Funktion „Rückruf notieren“ aus. Er muss von einem Ereignis ausgehen, sonst folgen zwei Funktionen aufeinander.',
+  },
+  {
+    id: 'm-rule-4',
+    type: 'rule',
+    group: 'M',
+    rules: ['M11'],
+    prompt: 'Der Rücksprung in dieser EPK ist nicht regelkonform. Gegen welche Regel verstößt er?',
+    epk: epk(
+      [
+        ev('s', 'Antrag ist begonnen', 1, 0),
+        fn('f0', 'Formular öffnen', 1, 1),
+        xor('j', 1, 2),
+        ev('m', 'Formular ist geöffnet', 1, 3),
+        fn('f', 'Formular ausfüllen', 1, 4),
+        xor('x', 1, 5),
+        ev('ok', 'Formular ist vollständig', 0.5, 6),
+        ev('nok', 'Formular ist unvollständig', 1.5, 6),
+      ],
+      [...flow('s>f0>j>m>f>x', 'x>ok', 'x>nok'), via('nok', 'j', [[2.45, 6], [2.45, 2]])],
+    ),
+    options: ['M8', 'M9', 'M10', 'M11'],
+    correct: 'M11',
+    violates: ['M11', 'E4', 'K2'],
+    explanation:
+      'Der Rücksprung mündet vor einem Ereignis statt vor einer Funktion. Dadurch folgen „Formular ist unvollständig“ und „Formular ist geöffnet“ direkt aufeinander.',
+  },
+  {
+    id: 'm-spot-1',
+    type: 'spot',
+    group: 'M',
+    rules: ['M1'],
+    prompt: SPOT,
+    epk: epk(
+      [
+        ev('a', 'Auftrag ist eingegangen', 0, 0),
+        fn('b', 'Auftrag erfassen', 0, 1),
+        ev('c', 'Auftrag ist erfasst', 0, 2),
+        fn('iso', 'Kunde informieren', 1, 1),
+      ],
+      flow('a>b>c'),
+    ),
+    targets: ['iso'],
+    violates: ['M1'],
+    explanation: 'Die Funktion „Kunde informieren“ ist mit keinem anderen Element verbunden.',
+  },
+  {
+    id: 'm-spot-2',
+    type: 'spot',
+    group: 'M',
+    rules: ['M4'],
+    prompt: SPOT,
+    epk: epk(
+      [ev('s', 'Mahnung ist fällig', 0, 0), fn('f', 'Mahnung versenden', 0, 1), ev('e', 'Mahnung ist versandt', 0, 2)],
+      flow('s>f', 'f>f', 'f>e'),
+    ),
+    targets: ['f>f'],
+    violates: ['M4'],
+    explanation:
+      'Die Kante beginnt und endet an derselben Funktion. Eine Wiederholung wird stattdessen als Rücksprung über einen Konnektor modelliert.',
+  },
+  {
+    id: 'm-spot-3',
+    type: 'spot',
+    group: 'M',
+    rules: ['M6'],
+    prompt: SPOT,
+    epk: epk(
+      [
+        ev('s', 'Lieferung ist angekündigt', 0, 0),
+        fn('f', 'Ware annehmen', 0, 1),
+        ev('e', 'Ware ist angenommen', 0, 2),
+        org('o', 'Wareneingang', 1, 1),
+        doc('d', 'Lieferschein', 1, 2),
+      ],
+      [...flow('s>f>e'), assoc('o', 'f'), assoc('d', 'e')],
+    ),
+    targets: ['d', 'd~e'],
+    violates: ['M6'],
+    explanation:
+      'Das Dokument „Lieferschein“ ist mit einem Ereignis verbunden. Erweiterungsobjekte gehören an Funktionen, hier an „Ware annehmen“.',
+  },
+  {
+    id: 'm-fill-1',
+    type: 'fill',
+    group: 'M',
+    rules: ['M7', 'F3'],
+    prompt:
+      'Die Funktion „Rechnung prüfen“ trifft eine Entscheidung: Die Rechnung wird entweder freigegeben oder abgelehnt. Ziehe das passende Element in die Lücke.',
+    epk: epk(
+      [
+        ev('s', 'Rechnung ist eingegangen', 0.5, 0),
+        fn('f', 'Rechnung prüfen', 0.5, 1),
+        slot('x', 0.5, 2),
+        ev('a', 'Rechnung ist freigegeben', 0, 3),
+        ev('b', 'Rechnung ist abgelehnt', 1, 3),
+      ],
+      flow('s>f>x', 'x>a', 'x>b'),
+    ),
+    palette: ['xor', 'and', 'or', 'event'],
+    solution: { x: ['xor'] },
+    explanation:
+      'Nach einer Entscheidung folgt ein aufspaltender Konnektor. Die Ergebnisse schließen sich hier gegenseitig aus, deshalb XOR.',
+  },
+  {
+    id: 'm-fill-2',
+    type: 'fill',
+    group: 'M',
+    rules: ['M8'],
+    prompt: 'Die beiden Zweige sollen wieder zusammengeführt werden. Ziehe das passende Element in die Lücke.',
+    epk: epk(
+      [
+        ev('s', 'Mitarbeiter ist eingestellt', 0.5, 0),
+        and('k', 0.5, 1),
+        fn('f1', 'Arbeitsplatz einrichten', 0, 2),
+        fn('f2', 'Zugänge beantragen', 1, 2),
+        slot('x', 0.5, 3),
+        ev('e', 'Mitarbeiter ist startklar', 0.5, 4),
+      ],
+      flow('s>k', 'k>f1>x', 'k>f2>x', 'x>e'),
+    ),
+    palette: ['xor', 'or', 'and', 'event'],
+    solution: { x: ['and'] },
+    explanation: 'Zusammengeführt wird mit demselben Konnektor, mit dem aufgespalten wurde, hier also mit UND.',
+  },
+  {
+    id: 'm-fill-3',
+    type: 'fill',
+    group: 'M',
+    rules: ['M10'],
+    prompt: 'Wer die Klausur nicht besteht, schreibt sie erneut. Ziehe das Element in die Lücke, in dem der Rücksprung mündet.',
+    epk: epk(
+      [
+        ev('s', 'Klausur ist angesetzt', 1, 0),
+        slot('x', 1, 1),
+        fn('f', 'Klausur schreiben', 1, 2),
+        xor('k', 1, 3),
+        ev('ok', 'Klausur ist bestanden', 0.5, 4),
+        ev('nok', 'Klausur ist nicht bestanden', 1.5, 4),
+      ],
+      [...flow('s>x>f>k', 'k>ok', 'k>nok'), via('nok', 'x', [[2.45, 4], [2.45, 1]])],
+    ),
+    palette: ['xor', 'and', 'or', 'event'],
+    solution: { x: ['xor'] },
+    explanation:
+      'Ein Rücksprung mündet in einem Konnektor, grundsätzlich in einem XOR: Die Funktion startet entweder über das Startereignis oder über den Rücksprung.',
+  },
+  {
+    id: 'm-pick-1',
+    type: 'pick',
+    group: 'M',
+    rules: ['M9', 'M10', 'M11'],
+    prompt:
+      'Ist das Passwort falsch, wird es erneut eingegeben. Welche EPK modelliert diesen Rücksprung regelkonform?',
+    choices: [
+      {
+        epk: epk(
+          [
+            ev('s', 'Anmeldung ist gestartet', 1, 0),
+            xor('j', 1, 1),
+            fn('f', 'Passwort eingeben', 1, 2),
+            xor('x', 1, 3),
+            ev('ok', 'Passwort ist richtig', 0.5, 4),
+            ev('nok', 'Passwort ist falsch', 1.5, 4),
+          ],
+          [...flow('s>j>f>x', 'x>ok', 'x>nok'), via('nok', 'j', [[2.45, 4], [2.45, 1]])],
+        ),
+        violates: [],
+        note: 'Regelkonform: Der Rücksprung geht von einem Ereignis aus und mündet in einem XOR-Konnektor unmittelbar vor der Funktion.',
+      },
+      {
+        epk: epk(
+          [
+            ev('s', 'Anmeldung ist gestartet', 1, 0),
+            fn('f', 'Passwort eingeben', 1, 1),
+            xor('x', 1, 2),
+            ev('ok', 'Passwort ist richtig', 0.5, 3),
+            ev('nok', 'Passwort ist falsch', 1.5, 3),
+          ],
+          [...flow('s>f>x', 'x>ok', 'x>nok'), via('nok', 'f', [[2.45, 3], [2.45, 1]])],
+        ),
+        violates: ['M10', 'F1'],
+        note: 'Der Rücksprung mündet direkt in der Funktion statt in einem Konnektor (M10). Die Funktion hat dadurch zwei eingehende Kanten (F1).',
+      },
+      {
+        epk: epk(
+          [
+            ev('s', 'Anmeldung ist gestartet', 1, 0),
+            fn('f0', 'Anmeldeseite öffnen', 1, 1),
+            xor('j', 1, 2),
+            ev('m', 'Anmeldeseite ist geöffnet', 1, 3),
+            fn('f', 'Passwort eingeben', 1, 4),
+            xor('x', 1, 5),
+            ev('ok', 'Passwort ist richtig', 0.5, 6),
+            ev('nok', 'Passwort ist falsch', 1.5, 6),
+          ],
+          [...flow('s>f0>j>m>f>x', 'x>ok', 'x>nok'), via('nok', 'j', [[2.45, 6], [2.45, 2]])],
+        ),
+        violates: ['M11', 'E4', 'K2'],
+        note: 'Der Rücksprung mündet vor einem Ereignis statt vor einer Funktion (M11). Dadurch folgen zwei Ereignisse aufeinander (E4).',
+      },
+    ],
+    correct: 0,
+    explanation:
+      'Ein Rücksprung geht von dem Ereignis aus, das die Wiederholung nötig macht, und mündet in einem XOR-Konnektor unmittelbar vor einer Funktion.',
+  },
+  {
+    id: 'm-model-1',
+    type: 'model',
+    group: 'M',
+    rules: ['M7', 'M8', 'F3'],
+    prompt:
+      'Modelliere diesen Ablauf: Sobald eine Retoure eingegangen ist, wird die Ware geprüft. Ist sie einwandfrei, wird der Kaufpreis erstattet. Ist sie beschädigt, wird die Ware zurückgeschickt. In beiden Fällen ist die Retoure danach abgeschlossen.',
+    grid: { cols: 3, rows: 7 },
+    solution: epk(
+      [
+        ev('s', 'Retoure ist eingegangen', 1, 0),
+        fn('f', 'Ware prüfen', 1, 1),
+        xor('x', 1, 2),
+        ev('a', 'Ware ist einwandfrei', 0, 3),
+        ev('b', 'Ware ist beschädigt', 2, 3),
+        fn('fa', 'Kaufpreis erstatten', 0, 4),
+        fn('fb', 'Ware zurückschicken', 2, 4),
+        xor('j', 1, 5),
+        ev('e', 'Retoure ist abgeschlossen', 1, 6),
+      ],
+      flow('s>f>x', 'x>a>fa>j', 'x>b>fb>j', 'j>e'),
+    ),
+    explanation:
+      'Die Funktion „Ware prüfen“ trifft die Entscheidung, deshalb folgt ein XOR-Split (M7). Zusammengeführt wird mit demselben Konnektor, mit dem aufgespalten wurde (M8).',
+  },
+  {
+    id: 'm-model-2',
+    type: 'model',
+    group: 'M',
+    rules: ['M9', 'M10', 'M11'],
+    prompt:
+      'Modelliere diesen Ablauf mit einem Rücksprung: Sobald eine Messung angesetzt ist, wird sie durchgeführt. Der Messwert ist danach entweder gültig oder ungültig. Bei einem ungültigen Messwert wird die Messung wiederholt.',
+    grid: { cols: 3, rows: 5 },
+    solution: epk(
+      [
+        ev('s', 'Messung ist angesetzt', 1, 0),
+        xor('j', 1, 1),
+        fn('f', 'Messung durchführen', 1, 2),
+        xor('x', 1, 3),
+        ev('ok', 'Messwert ist gültig', 0, 4),
+        ev('nok', 'Messwert ist ungültig', 2, 4),
+      ],
+      flow('s>j>f>x', 'x>ok', 'x>nok', 'nok>j'),
+    ),
+    explanation:
+      'Der Rücksprung geht vom Ereignis „Messwert ist ungültig“ aus (M9) und mündet in einem XOR-Konnektor (M10) unmittelbar vor der Funktion „Messung durchführen“ (M11).',
+  },
+  {
+    id: 'm-model-3',
+    type: 'model',
+    group: 'M',
+    rules: ['M6'],
+    prompt:
+      'Modelliere diesen Ablauf: Sobald eine Rechnung eingegangen ist, bucht die Buchhaltung sie anhand des Kontenplans. Erweiterungsobjekte verbindest du wie jedes andere Element über eine Kante.',
+    grid: { cols: 3, rows: 3 },
+    solution: epk(
+      [
+        ev('s', 'Rechnung ist eingegangen', 1, 0),
+        fn('f', 'Rechnung buchen', 1, 1),
+        ev('e', 'Rechnung ist gebucht', 1, 2),
+        org('o', 'Buchhaltung', 0, 1),
+        doc('d', 'Kontenplan', 2, 1),
+      ],
+      [...flow('s>f>e'), assoc('o', 'f'), assoc('d', 'f')],
+    ),
+    explanation:
+      'Organisationseinheit und Dokument hängen an der Funktion, denn nur sie wird von jemandem ausgeführt und verarbeitet Daten. Ereignisse erhalten keine Erweiterungsobjekte.',
+  },
+  {
+    id: 'm-repair-1',
+    type: 'repair',
+    group: 'M',
+    rules: ['M8'],
+    prompt: 'Die beiden Zweige dieser EPK werden mit dem falschen Konnektor zusammengeführt. Korrigiere das Modell.',
+    grid: { cols: 3, rows: 7 },
+    start: epk(
+      [
+        ev('s', 'Zahlung ist fällig', 1, 0),
+        fn('f', 'Zahlungsart wählen', 1, 1),
+        xor('x', 1, 2),
+        ev('a', 'Überweisung ist gewählt', 0, 3),
+        ev('b', 'Lastschrift ist gewählt', 2, 3),
+        fn('fa', 'Betrag überweisen', 0, 4),
+        fn('fb', 'Betrag einziehen', 2, 4),
+        and('j', 1, 5),
+        ev('e', 'Zahlung ist erledigt', 1, 6),
+      ],
+      flow('s>f>x', 'x>a>fa>j', 'x>b>fb>j', 'j>e'),
+    ),
+    solution: epk(
+      [
+        ev('s', 'Zahlung ist fällig', 1, 0),
+        fn('f', 'Zahlungsart wählen', 1, 1),
+        xor('x', 1, 2),
+        ev('a', 'Überweisung ist gewählt', 0, 3),
+        ev('b', 'Lastschrift ist gewählt', 2, 3),
+        fn('fa', 'Betrag überweisen', 0, 4),
+        fn('fb', 'Betrag einziehen', 2, 4),
+        xor('j', 1, 5),
+        ev('e', 'Zahlung ist erledigt', 1, 6),
+      ],
+      flow('s>f>x', 'x>a>fa>j', 'x>b>fb>j', 'j>e'),
+    ),
+    explanation:
+      'Aufgespalten wird mit XOR, es wird also nur ein Zweig durchlaufen. Ein UND-Join würde vergeblich auf den zweiten warten, deshalb führt ebenfalls ein XOR-Konnektor zusammen.',
+  },
+]
