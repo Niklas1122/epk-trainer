@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
-import { GROUPS } from './data/rules'
+import { GROUPS, RULE_BY_ID } from './data/rules'
 import { cls } from './lib/labels'
 import { link, useRoute } from './lib/router'
 import { Catalog } from './pages/Catalog'
 import { Home } from './pages/Home'
+import { Progress } from './pages/Progress'
 import { Runner } from './pages/Runner'
 import type { GroupId } from './types'
 
@@ -13,6 +14,7 @@ export function App() {
   const route = useRoute()
   const [page, param] = route
   const group = asGroup(param)
+  const rule = param && RULE_BY_ID[param] ? param : undefined
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -21,11 +23,15 @@ export function App() {
   let content = <Home />
   if (page === 'regeln') content = <Catalog group={group} />
   else if (page === 'ueben' && group) content = <Runner key={`learn-${group}`} mode="learn" group={group} />
+  else if (page === 'regel' && rule) content = <Runner key={`rule-${rule}`} mode="learn" rule={rule} />
+  else if (page === 'training') content = <Runner key="weak" mode="weak" />
+  else if (page === 'fortschritt') content = <Progress />
   else if (page === 'test') content = <Runner key="test" mode="test" />
 
   const nav = [
     { label: 'Start', href: link(), active: !page || page === 'ueben' },
-    { label: 'Regelkatalog', href: link('regeln'), active: page === 'regeln' },
+    { label: 'Regelkatalog', href: link('regeln'), active: page === 'regeln' || page === 'regel' },
+    { label: 'Fortschritt', href: link('fortschritt'), active: page === 'fortschritt' || page === 'training' },
     { label: 'Test', href: link('test'), active: page === 'test' },
   ]
 

@@ -3,22 +3,33 @@ import { GROUPS, RULE_BY_ID } from '../data/rules'
 import { tasksOf } from '../data/tasks'
 import { isAnswered, isCorrect } from '../lib/check'
 import { TASK_LABEL, cls } from '../lib/labels'
-import { saveResults, saveTest } from '../lib/progress'
+import { tasksOfRule } from '../lib/practice'
+import { readProgress, saveResults, saveTest } from '../lib/progress'
 import { link } from '../lib/router'
-import { learnQueue, testQueue } from '../lib/session'
+import { learnQueue, testQueue, weakQueue } from '../lib/session'
 import { Feedback } from '../tasks/Feedback'
 import { TaskView } from '../tasks/TaskView'
 import type { Answer, GroupId, Task } from '../types'
 
 interface Props {
-  mode: 'learn' | 'test'
+  /**
+   * `learn` works through the tasks of one rule group or one rule, `weak`
+   * through the tasks the learner needs most. Both give feedback after every
+   * task; `test` only at the end.
+   */
+  mode: 'learn' | 'test' | 'weak'
   group?: GroupId
+  rule?: string
 }
 
 const naturalOrder = (a: string, b: string) => a.localeCompare(b, 'de', { numeric: true })
 
-export function Runner({ mode, group }: Props) {
-  const initial = () => (mode === 'test' ? testQueue() : learnQueue(tasksOf(group!).map((t) => t.id)))
+export function Runner({ mode, group, rule }: Props) {
+  const initial = () => {
+    if (mode === 'test') return testQueue()
+    if (mode === 'weak') return weakQueue(readProgress())
+    return learnQueue((rule ? tasksOfRule(rule) : tasksOf(group!)).map((t) => t.id))
+  }
   const [queue, setQueue] = useState<Task[]>(initial)
   const [answers, setAnswers] = useState<Answer[]>([])
   const [index, setIndex] = useState(0)
@@ -40,14 +51,27 @@ export function Runner({ mode, group }: Props) {
     setDone(false)
   }
 
-  const groupName = GROUPS.find((g) => g.id === group)?.name
-  const title = mode === 'test' ? 'Test' : `Üben: ${groupName}`
+  const title =
+    mode === 'test'
+      ? 'Test'
+      : mode === 'weak'
+        ? 'Gezielt üben'
+        : rule
+          ? `Üben: Regel ${rule}`
+          : `Üben: ${GROUPS.find((g) => g.id === group)?.name}`
+  const back =
+    mode === 'test'
+      ? { href: link(), label: 'Test abbrechen' }
+      : mode === 'weak'
+        ? { href: link('fortschritt'), label: 'Zum Fortschritt' }
+        : { href: link('regeln', rule ? RULE_BY_ID[rule].group : group!), label: 'Zu den Regeln' }
   const results = queue.map((t, i) => isCorrect(t, answers[i] ?? {}))
   const score = results.filter(Boolean).length
 
   if (done) {
     const wrong = queue.filter((_, i) => !results[i])
     const weakRules = [...new Set(wrong.flatMap((t) => t.rules))].sort(naturalOrder)
+    const canRepeat = mode !== 'test' && wrong.length > 0
     return (
       <section className="page">
         <h1 ref={heading} tabIndex={-1}>
@@ -111,20 +135,20 @@ export function Runner({ mode, group }: Props) {
         </div>
 
         <div className="actions">
-          {mode === 'learn' && wrong.length > 0 && (
+          {canRepeat && (
             <button type="button" className="btn btn-primary" onClick={() => start(learnQueue(wrong.map((t) => t.id)))}>
               Falsche Aufgaben wiederholen
             </button>
           )}
           <button
             type="button"
-            className={cls('btn', mode === 'learn' && wrong.length > 0 ? 'btn-secondary' : 'btn-primary')}
+            className={cls('btn', canRepeat ? 'btn-secondary' : 'btn-primary')}
             onClick={() => start(initial())}
           >
-            {mode === 'test' ? 'Neuer Test' : 'Alle Aufgaben erneut'}
+            {mode === 'test' ? 'Neuer Test' : mode === 'weak' ? 'Weitere Aufgaben' : 'Alle Aufgaben erneut'}
           </button>
-          <a className="btn btn-secondary" href={link()}>
-            Zur Übersicht
+          <a className="btn btn-secondary" href={mode === 'weak' ? link('fortschritt') : link()}>
+            {mode === 'weak' ? 'Zum Fortschritt' : 'Zur Übersicht'}
           </a>
         </div>
       </section>
@@ -161,8 +185,8 @@ export function Runner({ mode, group }: Props) {
   return (
     <section className="page">
       <div className="runner-head">
-        <a className="back" href={mode === 'test' ? link() : link('regeln', group!)}>
-          ← {mode === 'test' ? 'Test abbrechen' : 'Zu den Regeln'}
+        <a className="back" href={back.href}>
+          ← {back.label}
         </a>
         <span className="muted">
           {title} · Aufgabe {index + 1} von {queue.length}
@@ -187,7 +211,7 @@ export function Runner({ mode, group }: Props) {
         <TaskView key={`${task.id}-${index}`} task={task} answer={answer} onChange={setAnswer} revealed={checked} />
         {checked && <Feedback task={task} answer={answer} />}
         <div className="actions">
-          {mode === 'learn' && !checked ? (
+          {mode !== 'test' && !checked ? (
             <button type="button" className="btn btn-primary" disabled={!answered} onClick={check}>
               Prüfen
             </button>

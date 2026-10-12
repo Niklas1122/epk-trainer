@@ -1,4 +1,4 @@
-import { epk, ev, flow, fn, frame, pi, slot, xor } from '../../epk/build'
+import { and, epk, ev, flow, fn, frame, pi, slot, xor } from '../../epk/build'
 import type { Task } from '../../types'
 import { SPOT } from './prompts'
 
@@ -78,6 +78,38 @@ export const P_TASKS: Task[] = [
       'Die aufrufende Prozessschnittstelle steht mitten im Kontrollfluss. Im Subprozess zeigen Prozessschnittstellen, wo der Ablauf herkommt und wohin er zurückkehrt.',
   },
   {
+    id: 'p-mc-5',
+    type: 'mc',
+    group: 'P',
+    rules: ['P5', 'P1'],
+    prompt: 'Ein Subprozess wird mitten in einen Ablauf eingefügt. Wo steht die aufrufende Prozessschnittstelle?',
+    options: [
+      'Mitten im Kontrollfluss der aufrufenden EPK, an der Stelle des Subprozesses',
+      'Immer nach dem Endereignis der aufrufenden EPK',
+      'Immer vor dem Startereignis der aufrufenden EPK',
+      'Neben der Funktion, die den Subprozess auslöst',
+    ],
+    correct: [0],
+    explanation:
+      'Bei einem eingefügten Subprozess läuft der Ablauf nach dem Aufruf in derselben EPK weiter. Die Prozessschnittstelle steht deshalb mitten im Kontrollfluss, anstelle einer Funktion.',
+  },
+  {
+    id: 'p-mc-6',
+    type: 'mc',
+    group: 'P',
+    rules: ['P6'],
+    prompt: 'Welche dieser Aufrufketten über Prozessschnittstellen ist zulässig?',
+    options: [
+      'Prozess A ruft B auf, B ruft C auf.',
+      'Prozess A ruft B auf, B ruft wieder A auf.',
+      'Prozess A ruft sich selbst auf.',
+      'Prozess A ruft B auf, B ruft C auf, C ruft wieder A auf.',
+    ],
+    correct: [0],
+    explanation:
+      'Zulässig ist nur eine Kette, die zu keinem bereits aufgerufenen Prozess zurückführt. Schleifen und Rekursionen sind verboten.',
+  },
+  {
     id: 'p-tf-1',
     type: 'tf',
     group: 'P',
@@ -122,6 +154,26 @@ export const P_TASKS: Task[] = [
       'Prozessschnittstellen dürfen vor dem Startereignis und nach dem Endereignis stehen. Das Modell besitzt trotzdem ein Start- und ein Endereignis.',
   },
   {
+    id: 'p-tf-3',
+    type: 'tf',
+    group: 'P',
+    rules: ['P6'],
+    prompt: 'Diese EPK heißt „Rechnung prüfen“. Ist sie regelkonform?',
+    epk: epk(
+      [
+        ev('a', 'Rechnung ist eingegangen', 0, 0),
+        fn('b', 'Beträge abgleichen', 0, 1),
+        ev('c', 'Rechnung ist fehlerhaft', 0, 2),
+        pi('p', 'Rechnung prüfen', 0, 3),
+      ],
+      flow('a>b>c>p'),
+      [frame('EPK „Rechnung prüfen“', 0, 0, 1, 4)],
+    ),
+    violates: ['P6'],
+    explanation:
+      'Die Prozessschnittstelle am Ende trägt den Namen der eigenen EPK: Der Prozess ruft sich selbst auf. Solche Rekursionen sind nicht zulässig.',
+  },
+  {
     id: 'p-rule-1',
     type: 'rule',
     group: 'P',
@@ -146,6 +198,29 @@ export const P_TASKS: Task[] = [
     violates: ['P4'],
     explanation:
       'Vor der Prozessschnittstelle steht „Bewerbung ist gesichtet“. Dieses Ereignis müsste in der aufgerufenen EPK wiederholt werden, dort steht aber „Termin ist vereinbart“.',
+  },
+  {
+    id: 'p-rule-2',
+    type: 'rule',
+    group: 'P',
+    rules: ['P7'],
+    prompt: 'Diese EPK wird von der EPK „Auftrag annehmen“ aufgerufen. Gegen welche Regel verstößt sie?',
+    epk: epk(
+      [
+        pi('p', 'Auftrag annehmen', 0.5, 0),
+        ev('a', 'Auftrag ist erfasst', 0, 1),
+        ev('b', 'Zahlung ist eingegangen', 1, 1),
+        and('j', 0.5, 2),
+        fn('f', 'Ware versenden', 0.5, 3),
+        ev('e', 'Ware ist versandt', 0.5, 4),
+      ],
+      flow('p>a>j', 'p>b>j', 'j>f>e'),
+    ),
+    options: ['E2', 'K3', 'P1', 'P7'],
+    correct: 'P7',
+    violates: ['P7'],
+    explanation:
+      'Von der Prozessschnittstelle gehen zwei Kanten aus. Sie darf nur eine ausgehende Kante haben; die beiden Ereignisse müssten über einen Konnektor angebunden werden.',
   },
   {
     id: 'p-spot-1',
@@ -290,6 +365,58 @@ export const P_TASKS: Task[] = [
     correct: 0,
     explanation:
       'Die Prozessschnittstelle nennt in jeder EPK die jeweils andere. Das Ereignis vor dem Aufruf wird in der aufgerufenen EPK wiederholt und verbindet so beide Modelle.',
+  },
+  {
+    id: 'p-pick-3',
+    type: 'pick',
+    group: 'P',
+    rules: ['P5', 'P3'],
+    prompt:
+      'Die EPK „Auftrag abwickeln“ fügt mitten in ihrem Ablauf den Subprozess „Bonität prüfen“ ein und läuft danach weiter. Welche Fassung der aufgerufenen EPK „Bonität prüfen“ ist regelkonform?',
+    choices: [
+      {
+        epk: epk(
+          [
+            pi('p1', 'Auftrag abwickeln', 0, 0),
+            ev('a', 'Auftrag ist erfasst', 0, 1),
+            fn('f', 'Auskunft einholen', 0, 2),
+            ev('b', 'Bonität ist geprüft', 0, 3),
+            pi('p2', 'Auftrag abwickeln', 0, 4),
+          ],
+          flow('p1>a>f>b>p2'),
+        ),
+        violates: [],
+        note: 'Regelkonform: Prozessschnittstellen markieren die Einsprungstelle am Anfang und die Aussprungstelle am Ende. Beide tragen den Namen der aufrufenden EPK.',
+      },
+      {
+        epk: epk(
+          [
+            pi('p1', 'Auftrag abwickeln', 0, 0),
+            ev('a', 'Auftrag ist erfasst', 0, 1),
+            fn('f', 'Auskunft einholen', 0, 2),
+            ev('b', 'Bonität ist geprüft', 0, 3),
+          ],
+          flow('p1>a>f>b'),
+        ),
+        violates: ['P5'],
+        note: 'Die Aussprungstelle fehlt. Ohne Prozessschnittstelle am Ende ist nicht erkennbar, dass der Ablauf in die EPK „Auftrag abwickeln“ zurückkehrt (P5).',
+      },
+      {
+        epk: epk(
+          [
+            ev('a', 'Auftrag ist erfasst', 0, 0),
+            fn('f', 'Auskunft einholen', 0, 1),
+            ev('b', 'Bonität ist geprüft', 0, 2),
+          ],
+          flow('a>f>b'),
+        ),
+        violates: ['P5'],
+        note: 'Weder die Ein- noch die Aussprungstelle ist markiert (P5). Die EPK lässt nicht erkennen, dass sie als Subprozess aufgerufen wird.',
+      },
+    ],
+    correct: 0,
+    explanation:
+      'In einem eingefügten Subprozess markieren Prozessschnittstellen die Ein- und die Aussprungstelle. Sie tragen den Namen der aufrufenden EPK.',
   },
   {
     id: 'p-model-1',

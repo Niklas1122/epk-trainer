@@ -1,6 +1,6 @@
 import { and, assoc, doc, epk, ev, flow, fn, org, slot, via, xor } from '../../epk/build'
 import type { Task } from '../../types'
-import { RULE, SPOT, TF } from './prompts'
+import { PICK, RULE, SPOT, TF } from './prompts'
 
 export const M_TASKS: Task[] = [
   {
@@ -45,6 +45,23 @@ export const M_TASKS: Task[] = [
     correct: [0, 1],
     explanation:
       'Der Rücksprung mündet unmittelbar vor einer Funktion, und der eingefügte Konnektor ist grundsätzlich ein XOR.',
+  },
+  {
+    id: 'm-mc-4',
+    type: 'mc',
+    group: 'M',
+    rules: ['M4', 'M5'],
+    multi: true,
+    prompt: 'Welche Kanten sind in einer EPK nicht erlaubt? Mehrere Antworten sind richtig.',
+    options: [
+      'Eine Kante, die am selben Knoten beginnt und endet',
+      'Zwei Kanten zwischen denselben beiden Knoten',
+      'Eine Kante von einem Konnektor zu einem weiteren Konnektor',
+      'Eine Kante, die von einem Ereignis zurück zu einem Konnektor weiter oben führt',
+    ],
+    correct: [0, 1],
+    explanation:
+      'Schlingen und Mehrfachkanten sind verboten. Verkettete Konnektoren sind dagegen erlaubt (K4), und ein Rücksprung von einem Ereignis zu einem Konnektor ist die regelkonforme Form einer Wiederholung.',
   },
   {
     id: 'm-tf-1',
@@ -102,6 +119,27 @@ export const M_TASKS: Task[] = [
     violates: [],
     explanation:
       'Der Rücksprung geht von einem Ereignis aus, mündet in einem XOR-Konnektor und das unmittelbar vor einer Funktion.',
+  },
+  {
+    id: 'm-tf-4',
+    type: 'tf',
+    group: 'M',
+    rules: ['M1'],
+    prompt: TF,
+    epk: epk(
+      [
+        ev('a1', 'Bestellung ist eingegangen', 0, 0),
+        fn('a2', 'Bestellung erfassen', 0, 1),
+        ev('a3', 'Bestellung ist erfasst', 0, 2),
+        ev('b1', 'Ware ist verpackt', 1, 0),
+        fn('b2', 'Ware versenden', 1, 1),
+        ev('b3', 'Ware ist versandt', 1, 2),
+      ],
+      flow('a1>a2>a3', 'b1>b2>b3'),
+    ),
+    violates: ['M1'],
+    explanation:
+      'Das Modell besteht aus zwei Teilketten, die nicht miteinander verbunden sind. Eine EPK muss ein zusammenhängender Ablauf sein.',
   },
   {
     id: 'm-rule-1',
@@ -200,6 +238,49 @@ export const M_TASKS: Task[] = [
       'Der Rücksprung mündet vor einem Ereignis statt vor einer Funktion. Dadurch folgen „Formular ist unvollständig“ und „Formular ist geöffnet“ direkt aufeinander.',
   },
   {
+    id: 'm-rule-5',
+    type: 'rule',
+    group: 'M',
+    rules: ['M1'],
+    prompt: RULE,
+    epk: epk(
+      [
+        ev('s', 'Urlaub ist beantragt', 0, 0),
+        fn('f', 'Urlaub genehmigen', 0, 1),
+        ev('e', 'Urlaub ist genehmigt', 0, 2),
+        org('o', 'Personalbüro', 1, 1),
+      ],
+      flow('s>f>e'),
+    ),
+    options: ['M1', 'M4', 'M5', 'M6'],
+    correct: 'M1',
+    violates: ['M1'],
+    explanation:
+      'Die Organisationseinheit „Personalbüro“ ist mit keinem Element verbunden. Auch Erweiterungsobjekte dürfen nicht isoliert im Modell stehen; sie gehört an die Funktion „Urlaub genehmigen“.',
+  },
+  {
+    id: 'm-rule-6',
+    type: 'rule',
+    group: 'M',
+    rules: ['M4'],
+    prompt: RULE,
+    epk: epk(
+      [
+        ev('s', 'Bericht ist angefordert', 0, 0),
+        fn('f1', 'Daten sammeln', 0, 1),
+        ev('m', 'Daten sind gesammelt', 0, 2),
+        fn('f2', 'Bericht überarbeiten', 0, 3),
+        ev('e', 'Bericht ist fertig', 0, 4),
+      ],
+      flow('s>f1>m>f2', 'f2>f2', 'f2>e'),
+    ),
+    options: ['M2', 'M4', 'M5', 'M8'],
+    correct: 'M4',
+    violates: ['M4'],
+    explanation:
+      'Die Kante an „Bericht überarbeiten“ beginnt und endet am selben Knoten. Soll die Funktion wiederholt werden, braucht es einen Rücksprung über einen Konnektor.',
+  },
+  {
     id: 'm-spot-1',
     type: 'spot',
     group: 'M',
@@ -253,6 +334,32 @@ export const M_TASKS: Task[] = [
     violates: ['M6'],
     explanation:
       'Das Dokument „Lieferschein“ ist mit einem Ereignis verbunden. Erweiterungsobjekte gehören an Funktionen, hier an „Ware annehmen“.',
+  },
+  {
+    id: 'm-spot-4',
+    type: 'spot',
+    group: 'M',
+    rules: ['M5'],
+    prompt: SPOT,
+    epk: epk(
+      [
+        ev('s', 'Besucher ist angemeldet', 0, 0),
+        fn('f1', 'Ausweis prüfen', 0, 1),
+        ev('m', 'Ausweis ist geprüft', 0, 2),
+        fn('f2', 'Besucherkarte ausgeben', 0, 3),
+        ev('e', 'Besucherkarte ist ausgegeben', 0, 4),
+      ],
+      [
+        ...flow('s>f1>m'),
+        { id: 'm>f2#1', from: 'm', to: 'f2', dx: -9 },
+        { id: 'm>f2#2', from: 'm', to: 'f2', dx: 9 },
+        ...flow('f2>e'),
+      ],
+    ),
+    targets: ['m>f2#1', 'm>f2#2'],
+    violates: ['M5'],
+    explanation:
+      'Zwischen „Ausweis ist geprüft“ und „Besucherkarte ausgeben“ verlaufen zwei Kanten. Zwischen zwei Knoten darf es nur eine Kante geben.',
   },
   {
     id: 'm-fill-1',
@@ -379,6 +486,70 @@ export const M_TASKS: Task[] = [
       'Ein Rücksprung geht von dem Ereignis aus, das die Wiederholung nötig macht, und mündet in einem XOR-Konnektor unmittelbar vor einer Funktion.',
   },
   {
+    id: 'm-pick-2',
+    type: 'pick',
+    group: 'M',
+    rules: ['M1', 'M4', 'M5'],
+    prompt: PICK,
+    choices: [
+      {
+        epk: epk(
+          [
+            ev('s', 'Schlüssel ist bestellt', 0, 0),
+            fn('f', 'Schlüssel ausgeben', 0, 1),
+            ev('e', 'Schlüssel ist ausgegeben', 0, 2),
+          ],
+          flow('s>f>e'),
+        ),
+        violates: [],
+        note: 'Regelkonform: Alle Elemente hängen zusammen, und zwischen zwei Knoten verläuft jeweils genau eine Kante.',
+      },
+      {
+        epk: epk(
+          [
+            ev('s', 'Schlüssel ist bestellt', 0, 0),
+            fn('f', 'Schlüssel ausgeben', 0, 1),
+            ev('e', 'Schlüssel ist ausgegeben', 0, 2),
+            ev('q', 'Quittung ist unterschrieben', 1, 1),
+          ],
+          flow('s>f>e'),
+        ),
+        violates: ['M1'],
+        note: 'Das Ereignis „Quittung ist unterschrieben“ ist mit keinem anderen Element verbunden (M1).',
+      },
+      {
+        epk: epk(
+          [
+            ev('s', 'Schlüssel ist bestellt', 0, 0),
+            fn('f', 'Schlüssel ausgeben', 0, 1),
+            ev('e', 'Schlüssel ist ausgegeben', 0, 2),
+          ],
+          flow('s>f', 'f>f', 'f>e'),
+        ),
+        violates: ['M4'],
+        note: 'An der Funktion hängt eine Schlinge: Die Kante beginnt und endet am selben Knoten (M4).',
+      },
+      {
+        epk: epk(
+          [
+            ev('s', 'Schlüssel ist bestellt', 0, 0),
+            fn('f', 'Schlüssel ausgeben', 0, 1),
+            ev('e', 'Schlüssel ist ausgegeben', 0, 2),
+          ],
+          [
+            { id: 's>f#1', from: 's', to: 'f', dx: -9 },
+            { id: 's>f#2', from: 's', to: 'f', dx: 9 },
+            ...flow('f>e'),
+          ],
+        ),
+        violates: ['M5'],
+        note: 'Zwischen dem Startereignis und der Funktion verlaufen zwei Kanten (M5).',
+      },
+    ],
+    correct: 0,
+    explanation: 'Eine EPK ist ein zusammenhängender Graph ohne Schlingen und ohne Mehrfachkanten.',
+  },
+  {
     id: 'm-model-1',
     type: 'model',
     group: 'M',
@@ -483,5 +654,68 @@ export const M_TASKS: Task[] = [
     ),
     explanation:
       'Aufgespalten wird mit XOR, es wird also nur ein Zweig durchlaufen. Ein UND-Join würde vergeblich auf den zweiten warten, deshalb führt ebenfalls ein XOR-Konnektor zusammen.',
+  },
+  {
+    id: 'm-repair-2',
+    type: 'repair',
+    group: 'M',
+    rules: ['M1'],
+    prompt:
+      'Diese EPK besteht aus zwei unverbundenen Teilketten. Nach dem Verpacken soll der Lieferschein gedruckt werden. Korrigiere das Modell.',
+    grid: { cols: 3, rows: 5 },
+    start: epk(
+      [
+        ev('s', 'Bestellung ist bezahlt', 0, 0),
+        fn('f1', 'Ware verpacken', 0, 1),
+        ev('e1', 'Ware ist verpackt', 0, 2),
+        fn('f2', 'Lieferschein drucken', 2, 3),
+        ev('e2', 'Lieferschein ist gedruckt', 2, 4),
+      ],
+      flow('s>f1>e1', 'f2>e2'),
+    ),
+    solution: epk(
+      [
+        ev('s', 'Bestellung ist bezahlt', 1, 0),
+        fn('f1', 'Ware verpacken', 1, 1),
+        ev('e1', 'Ware ist verpackt', 1, 2),
+        fn('f2', 'Lieferschein drucken', 1, 3),
+        ev('e2', 'Lieferschein ist gedruckt', 1, 4),
+      ],
+      flow('s>f1>e1>f2>e2'),
+    ),
+    explanation:
+      'Ein Modell darf nicht aus mehreren Teilketten bestehen. Eine Kante von „Ware ist verpackt“ zu „Lieferschein drucken“ verbindet beide zu einem Ablauf.',
+  },
+  {
+    id: 'm-repair-3',
+    type: 'repair',
+    group: 'M',
+    rules: ['M4', 'M9', 'M10', 'M11'],
+    prompt:
+      'Ist der Zähler nicht zugänglich, wird die Ablesung wiederholt. In dieser EPK ist die Wiederholung als Schlinge modelliert. Ersetze sie durch einen regelkonformen Rücksprung.',
+    grid: { cols: 3, rows: 5 },
+    start: epk(
+      [
+        ev('s', 'Ablesung ist fällig', 1, 0),
+        fn('f', 'Zähler ablesen', 1, 2),
+        xor('x', 1, 3),
+        ev('ok', 'Zählerstand ist erfasst', 0, 4),
+        ev('nok', 'Zähler ist nicht zugänglich', 2, 4),
+      ],
+      flow('s>f', 'f>f', 'f>x', 'x>ok', 'x>nok'),
+    ),
+    solution: epk(
+      [
+        ev('s', 'Ablesung ist fällig', 1, 0),
+        xor('j', 1, 1),
+        fn('f', 'Zähler ablesen', 1, 2),
+        xor('x', 1, 3),
+        ev('ok', 'Zählerstand ist erfasst', 0, 4),
+        ev('nok', 'Zähler ist nicht zugänglich', 2, 4),
+      ],
+      flow('s>j>f>x', 'x>ok', 'x>nok', 'nok>j'),
+    ),
+    explanation:
+      'Schlingen sind nicht erlaubt (M4). Der Rücksprung geht vom Ereignis „Zähler ist nicht zugänglich“ aus (M9) und mündet in einem XOR-Konnektor (M10) unmittelbar vor der Funktion (M11).',
   },
 ]

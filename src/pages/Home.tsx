@@ -1,12 +1,16 @@
 import { GROUPS, RULES, rulesOf } from '../data/rules'
 import { TASKS, tasksOf } from '../data/tasks'
 import { TASK_LABEL } from '../lib/labels'
+import { PRACTICE_SIZE, ruleProgress } from '../lib/practice'
 import { resetProgress, useProgress } from '../lib/progress'
 import { link } from '../lib/router'
 import { TEST_TASKS_PER_GROUP } from '../lib/session'
 
 export function Home() {
   const progress = useProgress()
+  const rules = ruleProgress(progress)
+  const weakRules = rules.filter((r) => r.status === 'weak').length
+  const doneRules = rules.filter((r) => r.status === 'done').length
   const lastTest = progress.tests[progress.tests.length - 1]
   const bestTest = progress.tests.reduce<number | null>(
     (best, t) => (best === null || t.score / t.total > best ? t.score / t.total : best),
@@ -70,6 +74,33 @@ export function Home() {
             </article>
           )
         })}
+
+        <article className="card group-card practice-tile">
+          <header>
+            <span className="badge badge-lg" aria-hidden="true">
+              ↻
+            </span>
+            <div>
+              <h3>Gezielt üben</h3>
+              <p className="muted">{PRACTICE_SIZE} Aufgaben, passend zu deinem Stand</p>
+            </div>
+          </header>
+          <p>
+            Zuerst kommen Aufgaben, die du zuletzt falsch gelöst hast, dann die, die du noch nicht bearbeitet hast.
+          </p>
+          <p className="muted small">
+            {doneRules} von {RULES.length} Regeln sitzen
+            {weakRules > 0 && ` · ${weakRules} zum Wiederholen`}
+          </p>
+          <div className="actions">
+            <a className="btn btn-secondary" href={link('fortschritt')}>
+              Fortschritt ansehen
+            </a>
+            <a className="btn btn-primary" href={link('training')}>
+              Gezielt üben
+            </a>
+          </div>
+        </article>
 
         <article className="card group-card test-card">
           <header>

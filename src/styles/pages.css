@@ -209,3 +209,126 @@
 .result-dot.is-bad {
   background: var(--bad);
 }
+
+/* ------------------------------------------------------------ progress */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.8rem;
+}
+
+.stat {
+  padding: 1rem;
+  text-align: center;
+}
+
+.stat > * + * {
+  margin-top: 0.2rem;
+}
+
+.stat-value {
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.practice-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.practice-card > * + * {
+  margin-top: 0;
+}
+
+.practice-card > div {
+  flex: 1 1 18rem;
+}
+
+.practice-card p {
+  margin-top: 0.3rem;
+}
+
+.practice-tile .badge {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.rule-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.3rem 1.25rem;
+}
+
+.rule-list > * + * {
+  margin-top: 0;
+}
+
+.rule-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.4rem 0.9rem;
+  padding: 0.85rem 0;
+}
+
+.rule-row + .rule-row {
+  border-top: 1px solid var(--border);
+}
+
+.rule-row-main > * + * {
+  margin-top: 0.3rem;
+}
+
+.rule-row-title {
+  font-weight: 600;
+}
+
+/* right and wrong share one bar, so the open remainder stays visible */
+.meter {
+  display: flex;
+  height: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.meter-right {
+  background: var(--ok);
+}
+
+.meter-wrong {
+  background: var(--bad);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status.is-started {
+  color: var(--accent);
+}
+
+.status.is-weak {
+  color: var(--bad);
+}
+
+.status.is-done {
+  color: var(--ok);
+}
+
+.practice-card h2 {
+  margin-top: 0;
+}

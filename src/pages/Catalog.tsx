@@ -2,12 +2,14 @@ import { GROUPS, rulesOf } from '../data/rules'
 import { tasksOf } from '../data/tasks'
 import { EpkDiagram, LegendItems } from '../epk/EpkDiagram'
 import { cls } from '../lib/labels'
+import { tasksOfRule } from '../lib/practice'
 import { link } from '../lib/router'
 import type { GroupId, NodeType, Rule } from '../types'
 
 const LEGEND: NodeType[] = ['event', 'function', 'interface', 'and', 'or', 'xor', 'org', 'doc']
 
 function RuleCard({ rule }: { rule: Rule }) {
+  const tasks = tasksOfRule(rule.id).length
   return (
     <article className="card rule" id={rule.id}>
       <header className="rule-head">
@@ -27,6 +29,9 @@ function RuleCard({ rule }: { rule: Rule }) {
           ))}
         </div>
       )}
+      <a className="btn btn-secondary btn-small" href={link('regel', rule.id)}>
+        {tasks} {tasks === 1 ? 'Aufgabe' : 'Aufgaben'} zu {rule.id} üben
+      </a>
     </article>
   )
 }

@@ -11,6 +11,10 @@ im Browser des Lernenden gespeichert. Entwicklung und Betrieb sind kostenlos.
 - **Regelkatalog** mit allen 30 Regeln, Erläuterungen und Richtig/Falsch-Beispielen
 - **Lernmodus** je Regelgruppe mit sofortiger Rückmeldung und Erklärung
 - **Testmodus** mit 15 zufälligen Aufgaben und Auswertung am Ende
+- **Gezielt üben**: 10 Aufgaben passend zum eigenen Stand, zuerst die zuletzt falsch gelösten, dann die
+  noch nicht bearbeiteten
+- **Fortschritt je Regel**: zeigt, welche der 30 Regeln sitzen und welche zu wiederholen sind; jede Regel
+  lässt sich einzeln üben
 - **Acht Aufgabentypen**, vom Ankreuzen bis zum eigenen Modell:
 
 | Aufgabentyp        | Kürzel   | Was der Lernende tut                                                  |
@@ -74,8 +78,9 @@ src/
 │  ├─ McView.tsx … ModelView.tsx
 │  ├─ Feedback.tsx          Rückmeldung nach dem Prüfen
 │  └─ Option.tsx, Palette.tsx, useDrag.ts   gemeinsam genutzte Bausteine
-├─ pages/                   Startseite, Regelkatalog, Lern- und Testmodus
+├─ pages/                   Startseite, Regelkatalog, Fortschritt, Lern- und Testmodus
 ├─ lib/                     Auswertung, Fortschritt (localStorage), Navigation
+│  └─ practice.ts           Stand je Regel und Auswahl der Aufgaben für „Gezielt üben“
 └─ styles/                  Stylesheets je Bereich, zusammengeführt in index.css
 ```
 

@@ -10,6 +10,24 @@
   .task-prompt {
     font-size: 1.1rem;
   }
+
+  .topbar nav a {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.9rem;
+  }
+
+  /* status and button move below the title */
+  .rule-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .rule-row-main {
+    grid-column: 2 / -1;
+  }
+
+  .rule-row .status {
+    grid-column: 2;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

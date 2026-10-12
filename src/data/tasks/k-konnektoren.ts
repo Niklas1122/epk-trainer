@@ -169,6 +169,28 @@ export const K_TASKS: Task[] = [
       'Der ODER-Split steht direkt nach einem Ereignis. Ob Ersatz, Gutschrift oder beides, müsste vorher eine Funktion entscheiden.',
   },
   {
+    id: 'k-spot-3',
+    type: 'spot',
+    group: 'K',
+    rules: ['K2'],
+    prompt: SPOT,
+    epk: epk(
+      [
+        ev('s1', 'Bestellung ist ausgelöst', 0, 0),
+        fn('f1', 'Lieferung prüfen', 0, 1),
+        ev('s2', 'Rechnung ist eingegangen', 1, 1),
+        and('j', 0.5, 2),
+        fn('f2', 'Zahlung freigeben', 0.5, 3),
+        ev('e', 'Zahlung ist freigegeben', 0.5, 4),
+      ],
+      flow('s1>f1>j', 's2>j', 'j>f2>e'),
+    ),
+    targets: ['j'],
+    violates: ['K2', 'F2'],
+    explanation:
+      'In den UND-Konnektor münden eine Funktion und ein Ereignis. Seine Eingänge müssen aber vom gleichen Typ sein. Nach „Lieferung prüfen“ fehlt ein Ereignis wie „Lieferung ist geprüft“, sonst folgt außerdem eine Funktion auf eine Funktion (F2).',
+  },
+  {
     id: 'k-fill-1',
     type: 'fill',
     group: 'K',
@@ -250,6 +272,66 @@ export const K_TASKS: Task[] = [
     correct: 0,
     explanation:
       'Ein einfacher Konnektor ist entweder Join oder Split. Wer beides braucht, modelliert zwei Konnektoren direkt hintereinander.',
+  },
+  {
+    id: 'k-pick-2',
+    type: 'pick',
+    group: 'K',
+    rules: ['K2', 'M7'],
+    prompt:
+      'Nach der Prüfung des Lagerbestands ist der Bestand entweder ausreichend, oder es wird nachbestellt. Welche EPK ist regelkonform?',
+    choices: [
+      {
+        epk: epk(
+          [
+            ev('s', 'Inventur ist abgeschlossen', 0.5, 0),
+            fn('f', 'Lagerbestand prüfen', 0.5, 1),
+            xor('x', 0.5, 2),
+            ev('a', 'Bestand ist ausreichend', 0, 3),
+            ev('b', 'Bestand ist zu niedrig', 1, 3),
+            fn('g', 'Ware nachbestellen', 1, 4),
+            ev('e', 'Ware ist nachbestellt', 1, 5),
+          ],
+          flow('s>f>x', 'x>a', 'x>b>g>e'),
+        ),
+        violates: [],
+        note: 'Regelkonform: Beide Ausgänge des Konnektors führen zu Ereignissen, die das Ergebnis der Prüfung festhalten.',
+      },
+      {
+        epk: epk(
+          [
+            ev('s', 'Inventur ist abgeschlossen', 0.5, 0),
+            fn('f', 'Lagerbestand prüfen', 0.5, 1),
+            xor('x', 0.5, 2),
+            ev('a', 'Bestand ist ausreichend', 0, 3),
+            fn('g', 'Ware nachbestellen', 1, 3),
+            ev('e', 'Ware ist nachbestellt', 1, 4),
+          ],
+          flow('s>f>x', 'x>a', 'x>g>e'),
+        ),
+        violates: ['K2', 'F2'],
+        note: 'Die Ausgänge des Konnektors führen zu einem Ereignis und zu einer Funktion (K2). Vor „Ware nachbestellen“ fehlt das Ereignis, das die Entscheidung festhält.',
+      },
+      {
+        epk: epk(
+          [
+            ev('s', 'Inventur ist abgeschlossen', 0.5, 0),
+            fn('f', 'Lagerbestand prüfen', 0.5, 1),
+            xor('x', 0.5, 2),
+            fn('h', 'Bestand bestätigen', 0, 3),
+            fn('g', 'Ware nachbestellen', 1, 3),
+            ev('a', 'Bestand ist bestätigt', 0, 4),
+            ev('e', 'Ware ist nachbestellt', 1, 4),
+          ],
+          flow('s>f>x', 'x>h>a', 'x>g>e'),
+        ),
+        violates: ['F2', 'M7'],
+        note: 'Auf die Funktion folgen über den Konnektor direkt zwei Funktionen (F2). Es fehlen die Ereignisse, die die beiden Entscheidungsmöglichkeiten dokumentieren (M7).',
+      },
+    ],
+    correct: 0,
+    explanation:
+      'Alle Ausgänge eines Konnektors sind vom gleichen Typ. Nach einer Entscheidung führt der XOR-Split zu Ereignissen, die die möglichen Ergebnisse festhalten.',
   },
   {
     id: 'k-model-1',

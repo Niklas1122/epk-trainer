@@ -1,6 +1,8 @@
 import { GROUPS } from '../data/rules'
 import { TASKS, tasksOf } from '../data/tasks'
 import type { Task } from '../types'
+import { mostUrgent } from './practice'
+import type { Progress } from './progress'
 
 export const TEST_TASKS_PER_GROUP = 3
 
@@ -31,6 +33,9 @@ export function prepare(task: Task): Task {
 }
 
 export const learnQueue = (ids: string[]) => TASKS.filter((t) => ids.includes(t.id)).map(prepare)
+
+/** The tasks the learner needs most, in random order. */
+export const weakQueue = (progress: Progress) => shuffle(mostUrgent(shuffle(TASKS), progress, Date.now())).map(prepare)
 
 /** A random test with the same number of tasks from every rule group. */
 export const testQueue = () =>
